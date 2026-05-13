@@ -1,9 +1,17 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Account, AIAnalysis } from '../types';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+let aiInstance: GoogleGenAI | null = null;
+function getAI() {
+  if (!aiInstance) {
+    const key = process.env.GEMINI_API_KEY || "";
+    aiInstance = new GoogleGenAI({ apiKey: key });
+  }
+  return aiInstance;
+}
 
 export async function analyzeAccountSentiment(account: Account): Promise<AIAnalysis> {
+  const ai = getAI();
   const interactionsSummary = account.interactions.map(i => 
     `Date: ${i.date}, Tone: ${i.tone}, Type: ${i.type}, Discussion: ${i.discussionPoints}, Risks: ${i.risks}, Opportunities: ${i.opportunities}, NPS: ${i.nps}`
   ).join('\n---\n');

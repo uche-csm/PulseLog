@@ -42,9 +42,9 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { format } from 'date-fns';
 
-import { Account, Interaction, SentimentTone, AIAnalysis, CSM } from './types.ts';
-import { MOCK_ACCOUNTS, TEAM } from './mockData.ts';
-import { analyzeAccountSentiment } from './services/aiDirector.ts';
+import { Account, Interaction, SentimentTone, AIAnalysis, CSM } from './types';
+import { MOCK_ACCOUNTS, TEAM } from './mockData';
+import { analyzeAccountSentiment } from './services/aiDirector';
 
 // Utility for Tailwind classes
 function cn(...inputs: ClassValue[]) {
