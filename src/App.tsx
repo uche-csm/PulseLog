@@ -384,10 +384,10 @@ function SettingsModal({ onClose, csm }: { onClose: () => void, csm: CSM }) {
 
 function DashboardView({ account }: { account: Account }) {
   return (
-    <div className="space-y-12 max-w-7xl mx-auto">
-      <div className="glass-card p-10 bg-white/60">
-        <h2 className="text-4xl font-display italic mb-4">{account.name} Overview</h2>
-        <p className="text-sm text-stone-600 leading-relaxed italic max-w-3xl">
+    <div className="space-y-8 md:space-y-12 max-w-7xl mx-auto">
+      <div className="glass-card p-6 md:p-10 bg-white/60">
+        <h2 className="text-2xl md:text-4xl font-display italic mb-4">{account.name} Overview</h2>
+        <p className="text-xs md:text-sm text-stone-600 leading-relaxed italic max-w-3xl">
           "{account.description}"
         </p>
       </div>
@@ -484,10 +484,10 @@ function DashboardView({ account }: { account: Account }) {
 
 function ExecutiveBriefingView({ account }: { account: Account }) {
   return (
-    <div className="space-y-8 md:space-y-12 max-w-5xl mx-auto py-8 md:py-12 px-2">
+    <div className="space-y-8 md:space-y-12 max-w-5xl mx-auto py-8 md:py-12 px-4 md:px-0">
       <div className="text-center space-y-4">
-        <h2 className="text-3xl md:text-5xl font-display italic leading-tight px-4">Executive Briefing: {account.name}</h2>
-        <p className="text-[10px] md:text-[11px] text-stone-500 uppercase tracking-widest max-w-lg mx-auto px-6">{account.description}</p>
+        <h2 className="text-3xl md:text-5xl font-display italic leading-tight">Executive Briefing: {account.name}</h2>
+        <p className="text-[10px] md:text-[11px] text-stone-500 uppercase tracking-widest max-w-lg mx-auto">{account.description}</p>
         <p className="text-[10px] md:text-xs uppercase tracking-[0.4em] text-[#D81B60] font-black pt-2 md:pt-4">Confidential • {format(new Date(), 'MMMM yyyy')}</p>
       </div>
 
@@ -542,22 +542,22 @@ function ExecutiveBriefingView({ account }: { account: Account }) {
 function AlertsView({ highRiskAccounts, onSelect }: { highRiskAccounts: Account[], onSelect: (id: string, briefing: boolean) => void }) {
   return (
     <div className="flex-1 flex flex-col p-4 md:p-8 overflow-hidden">
-      <div className="mb-8">
-        <h2 className="text-3xl font-display italic text-rose-700 flex items-center gap-3">
-          <div className="p-2 bg-rose-100 rounded-xl"><AlertCircle className="w-6 h-6" /></div>
+      <div className="mb-6 md:mb-8">
+        <h2 className="text-2xl md:text-3xl font-display italic text-rose-700 flex items-center gap-3">
+          <div className="p-2 bg-rose-100 rounded-xl"><AlertCircle className="w-5 h-5 md:w-6 md:h-6" /></div>
           Red Alert Command
         </h2>
-        <p className="text-sm text-stone-500 mt-2 max-w-xl">Critical accounts needing immediate intervention. Priority indicators: volume spikes, low NPS, missed QBRs.</p>
+        <p className="text-xs md:text-sm text-stone-500 mt-2 max-w-xl">Critical accounts needing immediate intervention. Volume spikes, low NPS, or missed QBRs.</p>
       </div>
 
       <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 pb-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {highRiskAccounts.map(acc => (
             <motion.div 
               key={acc.id}
               whileHover={{ scale: 1.02 }}
               onClick={() => onSelect(acc.id, true)}
-              className="bg-white border-2 border-rose-100 p-6 rounded-3xl shadow-lg cursor-pointer hover:border-rose-400 transition-all flex flex-col"
+              className="bg-white border-2 border-rose-100 p-5 md:p-6 rounded-[2rem] md:rounded-3xl shadow-lg cursor-pointer hover:border-rose-400 transition-all flex flex-col"
             >
               <div className="flex justify-between items-start mb-4">
                 <div>
@@ -618,28 +618,30 @@ function HeatmapView({ accounts }: { accounts: Account[] }) {
   return (
     <div className="p-4 md:p-8 h-full flex flex-col overflow-hidden">
       <div className="mb-8 shrink-0">
-        <h2 className="text-3xl font-display italic text-[#D81B60]">Health Matrix Heatmap</h2>
-        <p className="text-sm text-stone-500 mt-2">Core metric benchmarking across the enterprise portfolio.</p>
+        <h2 className="text-2xl md:text-3xl font-display italic text-[#D81B60]">Health Matrix</h2>
+        <p className="text-xs md:text-sm text-stone-500 mt-2">Core metric benchmarking across the enterprise portfolio.</p>
       </div>
 
       <div className="flex-1 bg-white rounded-3xl border border-[#FADADD] overflow-hidden flex flex-col shadow-sm">
-        <div className="grid grid-cols-6 border-b border-[#FADADD] bg-stone-50 shrink-0">
-          <div className="p-4 text-[10px] uppercase font-black text-stone-500 tracking-wider">Account</div>
-          {metrics.map(m => (
-            <div key={m} className="p-4 text-[10px] uppercase font-black text-stone-500 tracking-wider text-center">{m}</div>
-          ))}
-        </div>
-        <div className="flex-1 overflow-y-auto custom-scrollbar">
-          {accounts.map(acc => (
-            <div key={acc.id} className="grid grid-cols-6 border-b border-stone-100 hover:bg-stone-50 transition-colors">
-              <div className="p-4 font-bold text-xs truncate">{acc.name}</div>
-              <HeatCell value={acc.metrics.nps} max={10} />
-              <HeatCell value={acc.metrics.csat} max={5} />
-              <HeatCell value={acc.metrics.productUsageScore} max={100} />
-              <HeatCell value={acc.metrics.ticketVolume} max={30} inverse />
-              <HeatCell value={acc.metrics.healthScore} max={100} />
+        <div className="overflow-x-auto overflow-y-hidden custom-scrollbar">
+          <div className="min-w-[600px] md:min-w-0">
+            <div className="grid grid-cols-6 border-b border-[#FADADD] bg-stone-50 shrink-0">
+              <div className="p-4 text-[9px] md:text-[10px] uppercase font-black text-stone-500 tracking-wider">Account</div>
+              {metrics.map(m => (
+                <div key={m} className="p-4 text-[9px] md:text-[10px] uppercase font-black text-stone-500 tracking-wider text-center">{m}</div>
+              ))}
             </div>
-          ))}
+            {accounts.map(acc => (
+              <div key={acc.id} className="grid grid-cols-6 border-b border-stone-100 hover:bg-stone-50 transition-colors">
+                <div className="p-4 font-bold text-[10px] md:text-xs truncate">{acc.name}</div>
+                <HeatCell value={acc.metrics.nps} max={10} />
+                <HeatCell value={acc.metrics.csat} max={5} />
+                <HeatCell value={acc.metrics.productUsageScore} max={100} />
+                <HeatCell value={acc.metrics.ticketVolume} max={30} inverse />
+                <HeatCell value={acc.metrics.healthScore} max={100} />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -756,12 +758,12 @@ function NavButton({ active, onClick, icon, label, badge }: { active: boolean, o
     <button 
       onClick={onClick}
       className={cn(
-        "w-full flex items-center gap-3 p-3 rounded-2xl transition-all group relative",
+        "w-full flex items-center gap-3 p-4 md:p-3 rounded-2xl transition-all group relative",
         active ? "bg-[#D81B60] text-white shadow-lg shadow-rose-200" : "text-[#A84A5E] hover:bg-white/40"
       )}
     >
       {icon}
-      <span className={cn("text-xs font-bold uppercase tracking-widest hidden md:block", active ? "opacity-100" : "opacity-70")}>{label}</span>
+      <span className={cn("text-xs font-bold uppercase tracking-widest block", active ? "opacity-100" : "opacity-70")}>{label}</span>
       {badge !== undefined && badge > 0 && (
         <span className="absolute -top-1 -right-1 md:right-3 md:top-auto w-5 h-5 bg-rose-500 text-white rounded-full text-[10px] flex items-center justify-center font-black animate-pulse md:shadow-sm">
           {badge}
@@ -831,7 +833,7 @@ function MetricCard({ label, value, icon, subtext, trend, progress, color = 'ros
   color?: 'rose' | 'green'
 }) {
   return (
-    <div className="glass-card p-4 md:p-6 rounded-3xl border border-white/40 group relative overflow-hidden shadow-sm">
+    <div className="glass-card p-5 md:p-6 rounded-[2rem] md:rounded-3xl border border-white/40 group relative overflow-hidden shadow-sm">
       <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
         <div className="scale-[3]">{icon}</div>
       </div>
@@ -848,7 +850,7 @@ function MetricCard({ label, value, icon, subtext, trend, progress, color = 'ros
         <p className="text-3xl md:text-4xl font-display text-stone-800 leading-none">{value}</p>
       </div>
       {progress !== undefined && (
-        <div className="h-1 w-full bg-stone-100/50 mt-4 rounded-full overflow-hidden">
+        <div className="h-1.5 w-full bg-stone-100/50 mt-4 rounded-full overflow-hidden">
           <motion.div 
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
@@ -858,7 +860,7 @@ function MetricCard({ label, value, icon, subtext, trend, progress, color = 'ros
       )}
       {subtext && (
         <p className={cn(
-          "text-[9px] mt-3 font-bold uppercase tracking-tight truncate",
+          "text-[10px] mt-3 font-bold uppercase tracking-tight truncate",
           color === 'green' ? "text-green-600" : "text-[#A84A5E]"
         )}>{subtext}</p>
       )}
@@ -1024,24 +1026,24 @@ function NudgeManager({ step, onNext, onSkip }: { step: number, onNext: () => vo
   }, []);
 
   return (
-    <div className="fixed inset-0 z-[200] pointer-events-none">
+    <div className="fixed inset-0 z-[300] pointer-events-none flex items-center justify-center">
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm"
+        className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm pointer-events-auto"
+        onClick={onSkip}
       />
       
       <motion.div 
         key={step}
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="absolute pointer-events-auto w-[calc(100vw-3rem)] max-w-[340px] bg-white p-6 md:p-8 rounded-[2.5rem] shadow-[0_40px_100px_rgba(0,0,0,0.3)] border-2 border-[#D81B60]"
-        style={isMobile || step === 0 ? {
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)'
-        } : current.position}
+        className={cn(
+          "pointer-events-auto w-[calc(100vw-2rem)] max-w-[340px] bg-white p-6 md:p-8 rounded-[2.5rem] shadow-[0_40px_100px_rgba(0,0,0,0.4)] border-2 border-[#D81B60]",
+          isMobile && step > 0 ? "fixed bottom-10 left-1/2 -translate-x-1/2" : (step === 0 || isMobile ? "relative" : "absolute")
+        )}
+        style={(!isMobile && step !== 0) ? (current.position as any) : {}}
       >
         <div className="absolute -top-3 -right-3 w-8 h-8 bg-[#D81B60] text-white rounded-full flex items-center justify-center font-bold text-xs shadow-lg">
           {step + 1}
@@ -1095,18 +1097,18 @@ function InteractionModal({ onClose, onSubmit, csmId }: { onClose: () => void, o
         initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
         className="bg-white w-full max-w-2xl rounded-[40px] shadow-2xl border border-[#FADADD] overflow-hidden flex flex-col max-h-[95vh]"
       >
-        <div className="p-8 border-b border-[#FADADD] bg-gradient-to-r from-white to-[#FFF8F9] flex justify-between items-center shrink-0">
+        <div className="p-5 md:p-8 border-b border-[#FADADD] bg-gradient-to-r from-white to-[#FFF8F9] flex justify-between items-center shrink-0">
           <div>
-            <h2 className="text-3xl font-display italic text-[#D81B60]">Log Interaction</h2>
-            <p className="text-[10px] uppercase font-bold text-[#A84A5E] tracking-widest mt-1">Capture the moment of truth</p>
+            <h2 className="text-2xl md:text-3xl font-display italic text-[#D81B60]">Log Interaction</h2>
+            <p className="text-[9px] md:text-[10px] uppercase font-bold text-[#A84A5E] tracking-widest mt-1">Capture the moment of truth</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-stone-50 rounded-full transition-colors"><Plus className="rotate-45" /></button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-5 md:p-8 space-y-6 md:space-y-8 custom-scrollbar">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-[10px] uppercase font-black text-stone-400">Interaction Type</label>
+              <label className="text-[9px] md:text-[10px] uppercase font-black text-stone-400">Interaction Type</label>
               <select className="w-full bg-stone-50 border border-stone-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#D81B60]"
                 value={formData.type} onChange={e => setFormData({...formData, type: e.target.value as any})}>
                 <option>Weekly Sync</option><option>Ad-hoc Check-in</option><option>QBR</option>
@@ -1114,11 +1116,11 @@ function InteractionModal({ onClose, onSubmit, csmId }: { onClose: () => void, o
               </select>
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] uppercase font-black text-stone-400">Mood Indicator</label>
+              <label className="text-[9px] md:text-[10px] uppercase font-black text-stone-400">Mood Indicator</label>
               <div className="flex justify-between bg-stone-50 p-2 rounded-2xl border border-stone-100">
                 {tones.map(t => (
                   <button key={t} type="button" onClick={() => setFormData({...formData, tone: t})}
-                    className={cn("w-10 h-10 flex items-center justify-center rounded-xl text-xl transition-all",
+                    className={cn("w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-xl text-lg md:text-xl transition-all",
                     formData.tone === t ? "bg-white shadow-sm ring-1 ring-stone-200" : "opacity-40 hover:opacity-100")}>{t}</button>
                 ))}
               </div>
@@ -1127,8 +1129,8 @@ function InteractionModal({ onClose, onSubmit, csmId }: { onClose: () => void, o
 
           <div className="space-y-4">
              <div className="flex justify-between items-center">
-               <label className="text-[10px] uppercase font-black text-stone-400">Event NPS: {formData.nps}</label>
-               <span className="text-[10px] font-bold text-[#D81B60] uppercase">{formData.nps > 8 ? 'Promoter' : 'Neutral'}</span>
+               <label className="text-[9px] md:text-[10px] uppercase font-black text-stone-400">Event NPS: {formData.nps}</label>
+               <span className="text-[9px] md:text-[10px] font-bold text-[#D81B60] uppercase">{formData.nps > 8 ? 'Promoter' : 'Neutral'}</span>
              </div>
              <input type="range" min="0" max="10" step="1" value={formData.nps} onChange={e => setFormData({...formData, nps: parseInt(e.target.value)})}
                className="w-full h-1.5 bg-stone-100 rounded-full appearance-none accent-[#D81B60]" />
@@ -1136,18 +1138,18 @@ function InteractionModal({ onClose, onSubmit, csmId }: { onClose: () => void, o
 
           <div className="space-y-6">
             <div className="space-y-2">
-              <label className="text-[10px] uppercase font-black text-stone-400">Executive Summary</label>
+              <label className="text-[9px] md:text-[10px] uppercase font-black text-stone-400">Executive Summary</label>
               <textarea value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})}
                 placeholder="Observed tone and core outcome..." className="w-full bg-stone-50 border border-stone-100 rounded-2xl p-4 text-sm h-24 resize-none focus:outline-none focus:ring-1 focus:ring-[#D81B60]" />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-[10px] uppercase font-black text-rose-500 flex items-center gap-2"><AlertCircle className="w-3 h-3" /> Risks</label>
+                <label className="text-[9px] md:text-[10px] uppercase font-black text-rose-500 flex items-center gap-2"><AlertCircle className="w-3 h-3" /> Risks</label>
                 <textarea value={formData.risks} onChange={e => setFormData({...formData, risks: e.target.value})}
                   className="w-full bg-rose-50/30 border border-rose-100 rounded-2xl p-3 text-xs h-20 resize-none focus:outline-none" />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] uppercase font-black text-emerald-500 flex items-center gap-2"><TrendingUp className="w-3 h-3" /> Opportunities</label>
+                <label className="text-[9px] md:text-[10px] uppercase font-black text-emerald-500 flex items-center gap-2"><TrendingUp className="w-3 h-3" /> Opportunities</label>
                 <textarea value={formData.opportunities} onChange={e => setFormData({...formData, opportunities: e.target.value})}
                   className="w-full bg-emerald-50/30 border border-emerald-100 rounded-2xl p-3 text-xs h-20 resize-none focus:outline-none" />
               </div>
@@ -1155,21 +1157,21 @@ function InteractionModal({ onClose, onSubmit, csmId }: { onClose: () => void, o
           </div>
           
           <div className="pb-4">
-             <label className="text-[10px] uppercase font-black text-stone-400 block mb-3">Classification Tokens</label>
+             <label className="text-[9px] md:text-[10px] uppercase font-black text-stone-400 block mb-3">Classification Tokens</label>
              <div className="flex flex-wrap gap-2">
                {tagOptions.map(t => (
                  <button key={t} type="button" onClick={() => setFormData({...formData, tags: formData.tags.includes(t) ? formData.tags.filter(tag => tag !== t) : [...formData.tags, t]})}
-                   className={cn("px-4 py-2 rounded-full text-[10px] font-black uppercase transition-all",
+                   className={cn("px-3 py-1.5 md:px-4 md:py-2 rounded-full text-[9px] md:text-[10px] font-black uppercase transition-all",
                    formData.tags.includes(t) ? "bg-[#D81B60] text-white" : "bg-stone-50 text-stone-400 border border-stone-200")}>{t}</button>
                ))}
              </div>
           </div>
         </div>
 
-        <div className="p-8 border-t border-[#FADADD] bg-stone-50 flex gap-4 shrink-0">
-          <button onClick={onClose} className="flex-1 py-4 text-[10px] font-black uppercase text-stone-400">Discard</button>
+        <div className="p-6 md:p-8 border-t border-[#FADADD] bg-stone-50 flex gap-4 shrink-0">
+          <button onClick={onClose} className="flex-1 py-3 md:py-4 text-[9px] md:text-[10px] font-black uppercase text-stone-400">Discard</button>
           <button onClick={() => onSubmit({...formData, id: Date.now().toString(), date: new Date().toISOString(), csmId})} 
-            className="flex-2 py-4 bg-[#D81B60] text-white text-[10px] font-black uppercase rounded-2xl shadow-xl shadow-pink-200">
+            className="flex-2 py-3 md:py-4 bg-[#D81B60] text-white text-[9px] md:text-[10px] font-black uppercase rounded-2xl shadow-xl">
             Finalize Pulse
           </button>
         </div>
