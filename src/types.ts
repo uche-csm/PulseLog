@@ -25,6 +25,11 @@ export interface HealthMetric {
   productUsageScore: number; // 0-100
   engagementLevel: 'High' | 'Medium' | 'Low' | 'Critical';
   lastTouch: string;
+  // Enterprise Sophistication Metrics
+  multiThreadingScore: number; // Number of distinct stakeholders with active engagement (0-10)
+  expansionPipeline: number; // $ value of active expansion opportunities
+  daysToRenewal: number; 
+  strategicAlignment: number; // 0-100 (CSM's subjective assessment of alignment with client goals)
 }
 
 export interface PeriodicNPS {
@@ -37,6 +42,7 @@ export interface PeriodicNPS {
 export interface Account {
   id: string;
   name: string;
+  description: string;
   status: 'Healthy' | 'At Risk' | 'Churned' | 'Onboarding';
   csmId: string;
   metrics: HealthMetric;
@@ -47,7 +53,7 @@ export interface Account {
 export interface CSM {
   id: string;
   name: string;
-  role: 'Team Lead' | 'CSM';
+  role: 'Team Lead' | 'CSM' | 'Customer Success Manager';
   avatar?: string;
 }
 

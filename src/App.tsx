@@ -25,7 +25,8 @@ import {
   MoreVertical,
   Layers,
   Activity,
-  Heart
+  Heart,
+  Menu
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -42,9 +43,10 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { format } from 'date-fns';
 
+import Markdown from 'react-markdown';
 import { Account, Interaction, SentimentTone, AIAnalysis, CSM } from './types';
 import { MOCK_ACCOUNTS, TEAM } from './mockData';
-import { analyzeAccountSentiment } from './services/aiDirector';
+import { analyzeAccountSentiment, chatWithAdvisor } from './services/aiDirector';
 
 // Utility for Tailwind classes
 function cn(...inputs: ClassValue[]) {
@@ -58,8 +60,20 @@ export default function App() {
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
   const [isLoadingAi, setIsLoadingAi] = useState(false);
-  const [isAiWidgetOpen, setIsAiWidgetOpen] = useState(false);
-  const [currentNudge, setCurrentNudge] = useState<number | null>(0); // 0 = start onboarding
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [currentNudge, setCurrentNudge] = useState<number | null>(0); 
+  const [isExecutiveBriefing, setIsExecutiveBriefing] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'All' | 'Healthy' | 'At Risk' | 'Onboarding'>('All');
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  const filteredAccounts = useMemo(() => {
+    return accounts.filter(acc => {
+      const matchesSearch = acc.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === 'All' || acc.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [accounts, searchTerm, statusFilter]);
 
   const selectedAccount = useMemo(() => 
     accounts.find(a => a.id === selectedAccountId) || accounts[0],
@@ -100,28 +114,48 @@ export default function App() {
   };
 
   return (
-    <div className="flex h-screen bg-[#FFF8F9] text-[#2D2D2D] font-sans overflow-hidden">
+    <div className="flex h-screen bg-[#F5F2ED] text-[#1A1A1A] font-sans overflow-hidden">
       {/* Dynamic Background Elements */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden opacity-20">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-pink-200 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-rose-200 rounded-full blur-[100px]" />
+      <div className="fixed inset-0 pointer-events-none overflow-hidden opacity-50">
+        <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-[#D81B60]/5 rounded-full blur-[140px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-stone-300/20 rounded-full blur-[120px]" />
       </div>
 
+      {/* Mobile Sidebar Overlay */}
+      <AnimatePresence>
+        {isSidebarOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }}
+            onClick={() => setIsSidebarOpen(false)}
+            className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-[55] md:hidden"
+          />
+        )}
+      </AnimatePresence>
+
       {/* Sidebar Navigation */}
-      <aside className="w-20 md:w-64 bg-[#FFE4E9] border-r border-[#FADADD] flex flex-col shrink-0 z-20 transition-all duration-300">
-        <div className="p-6 border-b border-[#FADADD] flex flex-col items-center md:items-start shrink-0">
-          <h1 className="text-2xl md:text-3xl font-display italic text-[#D81B60] leading-tight hidden md:block">PulseLog</h1>
-          <TrendingUp className="w-8 h-8 text-[#D81B60] md:hidden" />
-          <p className="text-[10px] uppercase tracking-widest text-[#A84A5E] font-bold mt-1 hidden md:block">CSM Intelligence</p>
+      <aside className={cn(
+        "bg-white border-r border-[#1A1A1A]/10 flex flex-col shrink-0 z-[60] transition-all duration-500 ease-in-out fixed md:relative h-full",
+        isSidebarOpen ? "translate-x-0 w-72 shadow-2xl" : "-translate-x-full md:translate-x-0 w-20 md:w-64"
+      )}>
+        <button onClick={() => setIsSidebarOpen(false)} className="md:hidden absolute top-6 right-6 p-2 text-stone-400">
+           <Plus className="rotate-45" />
+        </button>
+
+        <div className="p-6 md:p-8 border-b border-[#1A1A1A]/5 flex flex-col items-center md:items-start shrink-0">
+          <h1 className="text-xl md:text-3xl font-display italic text-[#1A1A1A] leading-tight hidden md:block">Timber</h1>
+          <TrendingUp className="w-8 h-8 text-[#D81B60]" />
+          <p className="text-[8px] md:text-[9px] uppercase tracking-[0.25em] text-[#D81B60] font-bold mt-2 hidden md:block opacity-60">CSM Intelligence</p>
         </div>
         
-        <nav className="flex-1 p-4 space-y-4 overflow-y-auto custom-scrollbar">
-          <div className="space-y-1">
+        <nav className="flex-1 p-3 md:p-6 space-y-4 md:space-y-6 overflow-y-auto custom-scrollbar">
+          <div className="space-y-2">
             <NavButton 
               active={activeTab === 'Dashboard'} 
               onClick={() => setActiveTab('Dashboard')}
-              icon={<Layers className="w-5 h-5" />}
-              label="Overview"
+              icon={<Layers className="w-4 h-4" />}
+              label="Portfolio"
             />
             <NavButton 
               active={activeTab === 'Alerts'} 
@@ -144,10 +178,37 @@ export default function App() {
             />
           </div>
 
-          <div className="pt-6 hidden md:block">
-            <div className="text-[11px] uppercase tracking-wider text-[#A84A5E] mb-3 px-2 font-bold font-georgia italic">Active Accounts</div>
+          <div className="pt-6 hidden md:block px-6">
+            <div className="flex flex-col gap-3 mb-6">
+               <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-stone-400" />
+                  <input 
+                    type="text" 
+                    placeholder="Search accounts..." 
+                    className="w-full bg-stone-50 border border-stone-100 rounded-xl py-2 pl-9 pr-3 text-[10px] focus:outline-none focus:border-[#D81B60]"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+               </div>
+               <div className="flex gap-2">
+                  {(['All', 'Healthy', 'At Risk'] as const).map(f => (
+                    <button 
+                      key={f}
+                      onClick={() => setStatusFilter(f)}
+                      className={cn(
+                        "px-2 py-1 rounded-lg text-[8px] font-bold uppercase tracking-wider transition-all",
+                        statusFilter === f ? "bg-[#1A1A1A] text-white" : "bg-stone-50 text-stone-400 hover:bg-stone-100"
+                      )}
+                    >
+                      {f}
+                    </button>
+                  ))}
+               </div>
+            </div>
+
+            <div className="text-[11px] uppercase tracking-wider text-[#A84A5E] mb-3 px-2 font-bold font-georgia italic">Portfolio Signals</div>
             <div className="space-y-1">
-              {accounts.map(acc => (
+              {filteredAccounts.map(acc => (
                 <button
                   key={acc.id}
                   onClick={() => {
@@ -157,11 +218,11 @@ export default function App() {
                   className={cn(
                     "w-full text-left p-2.5 rounded-xl transition-all duration-200 flex items-center justify-between group",
                     selectedAccountId === acc.id && activeTab === 'Dashboard'
-                      ? "bg-white shadow-sm border border-[#FADADD] scale-[1.02]" 
+                      ? "bg-white shadow-sm border border-stone-200 scale-[1.02]" 
                       : "hover:bg-white/40 opacity-70 hover:opacity-100"
                   )}
                 >
-                  <span className="font-medium text-xs text-stone-700 truncate mr-2">{acc.name}</span>
+                  <span className="font-medium text-[11px] text-stone-700 truncate mr-2">{acc.name}</span>
                   <span className={cn(
                     "w-1.5 h-1.5 rounded-full shrink-0",
                     acc.status === 'Healthy' ? "bg-green-500" : "bg-rose-500"
@@ -172,15 +233,21 @@ export default function App() {
           </div>
         </nav>
 
-        <div className="p-4 border-t border-[#FADADD] bg-[#FCE8EB] mt-auto shrink-0">
+        <div className="p-4 border-t border-[#FADADD] bg-stone-50 mt-auto shrink-0">
           <div className="flex items-center gap-3 justify-center md:justify-start">
-            <div className="w-8 h-8 rounded-full bg-[#D81B60] flex items-center justify-center text-white text-[10px] font-bold ring-2 ring-white">
+            <button 
+              onClick={() => setIsSettingsOpen(true)}
+              className="w-10 h-10 rounded-full bg-[#1A1A1A] flex items-center justify-center text-white text-[10px] font-bold ring-2 ring-white hover:bg-[#D81B60] transition-colors"
+            >
               UP
-            </div>
+            </button>
             <div className="hidden md:block">
               <p className="text-[10px] font-bold">U. Precious</p>
-              <p className="text-[9px] text-[#A84A5E]">Team Lead</p>
+              <p className="text-[9px] text-[#A84A5E]">CSM</p>
             </div>
+            <button onClick={() => setIsSettingsOpen(true)} className="ml-auto text-stone-400 hover:text-[#D81B60] hidden md:block">
+              <Settings className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </aside>
@@ -194,18 +261,26 @@ export default function App() {
               status={selectedAccount.status} 
               onLogClick={() => setIsLogModalOpen(true)}
               account={selectedAccount}
+              isBriefing={isExecutiveBriefing}
+              onBriefingToggle={() => setIsExecutiveBriefing(!isExecutiveBriefing)}
+              onMenuClick={() => setIsSidebarOpen(true)}
             />
             <div className="flex-1 p-4 md:p-8 overflow-y-auto custom-scrollbar">
-              <DashboardView account={selectedAccount} />
+              {isExecutiveBriefing ? (
+                <ExecutiveBriefingView account={selectedAccount} />
+              ) : (
+                <DashboardView account={selectedAccount} />
+              )}
             </div>
           </div>
         )}
 
         {activeTab === 'Alerts' && (
            <div className="flex flex-col h-full overflow-hidden">
-            <AlertsView highRiskAccounts={highRiskAccounts} onSelect={(id) => {
+            <AlertsView highRiskAccounts={highRiskAccounts} onSelect={(id, briefing) => {
               setSelectedAccountId(id);
               setActiveTab('Dashboard');
+              setIsExecutiveBriefing(briefing);
             }} />
           </div>
         )}
@@ -225,10 +300,9 @@ export default function App() {
 
       {/* AI Director Widget */}
       <AiWidget 
-        isOpen={isAiWidgetOpen} 
-        onToggle={() => setIsAiWidgetOpen(!isAiWidgetOpen)}
         analysis={aiAnalysis}
         isLoading={isLoadingAi}
+        account={selectedAccount}
       />
 
       {/* Onboarding Nudges */}
@@ -254,95 +328,152 @@ export default function App() {
 
 // --- View Sub-Components ---
 
+function SettingsModal({ onClose, csm }: { onClose: () => void, csm: CSM }) {
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#1A1A1A]/40 backdrop-blur-md"
+    >
+      <motion.div 
+        initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
+        className="bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-hidden flex flex-col"
+      >
+        <div className="p-10 border-b border-stone-100 flex justify-between items-center">
+          <div>
+            <h2 className="text-3xl font-display italic">Success Settings</h2>
+            <p className="text-[10px] uppercase font-bold text-stone-400 tracking-widest mt-1">Configure your Command Center</p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-stone-50 rounded-full transition-colors"><Plus className="rotate-45" /></button>
+        </div>
+
+        <div className="p-10 space-y-10">
+          <div className="flex items-center gap-6">
+             <div className="w-20 h-20 rounded-[2rem] bg-[#1A1A1A] flex items-center justify-center text-white text-2xl font-display italic">UP</div>
+             <div>
+                <h4 className="text-xl font-bold">{csm.name}</h4>
+                <p className="text-sm text-stone-500">{csm.role}</p>
+                <button className="text-[10px] font-black uppercase text-[#D81B60] mt-2">Update Credentials</button>
+             </div>
+          </div>
+
+          <div className="space-y-6">
+             <div className="flex items-center justify-between">
+                <div>
+                   <p className="text-xs font-bold">Proactive Sentiment Monitoring</p>
+                   <p className="text-[10px] text-stone-400">Run AI analysis on every new pulse signal</p>
+                </div>
+                <div className="w-10 h-5 bg-[#D81B60] rounded-full relative"><div className="absolute right-1 top-1 w-3 h-3 bg-white rounded-full" /></div>
+             </div>
+             <div className="flex items-center justify-between">
+                <div>
+                   <p className="text-xs font-bold">Health Threshold Alerts</p>
+                   <p className="text-[10px] text-stone-400">Trigger Strategic Review for scores below 60%</p>
+                </div>
+                <div className="w-10 h-5 bg-[#D81B60] rounded-full relative"><div className="absolute right-1 top-1 w-3 h-3 bg-white rounded-full" /></div>
+             </div>
+          </div>
+        </div>
+
+        <div className="p-10 bg-stone-50 border-t border-stone-100 flex gap-4">
+          <button onClick={onClose} className="flex-1 prestige-btn">Save Preferences</button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 function DashboardView({ account }: { account: Account }) {
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+    <div className="space-y-12 max-w-7xl mx-auto">
+      <div className="glass-card p-10 bg-white/60">
+        <h2 className="text-4xl font-display italic mb-4">{account.name} Overview</h2>
+        <p className="text-sm text-stone-600 leading-relaxed italic max-w-3xl">
+          "{account.description}"
+        </p>
+      </div>
+
+      {/* Executive Metrics Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard 
-          label="Account NPS" 
-          value={account.metrics.nps.toFixed(1)} 
-          icon={<BarChart3 className="w-4 h-4" />}
-          progress={account.metrics.nps * 10}
-        />
-        <MetricCard 
-          label="CSAT Score" 
-          value={account.metrics.csat.toFixed(1)} 
-          icon={<Sparkles className="w-4 h-4" />}
-          progress={account.metrics.csat * 20}
+          label="Expansion Pipeline" 
+          value={`$${(account.metrics.expansionPipeline / 1000).toFixed(0)}k`} 
+          icon={<TrendingUp className="w-4 h-4" />}
+          subtext="Net New ARR Potential"
           color="green"
         />
         <MetricCard 
-          label="Support Volume" 
-          value={account.metrics.ticketVolume.toString()} 
-          icon={<Ticket className="w-4 h-4" />}
-          subtext={`${account.metrics.openHighPriorityTickets} Priority Tickets`}
+          label="Multi-threading" 
+          value={`${account.metrics.multiThreadingScore}/10`} 
+          icon={<Users className="w-4 h-4" />}
+          subtext="Active Stakeholders"
+          progress={account.metrics.multiThreadingScore * 10}
         />
         <MetricCard 
-          label="Product Usage" 
+          label="Days to Renewal" 
+          value={account.metrics.daysToRenewal.toString()} 
+          icon={<Calendar className="w-4 h-4" />}
+          subtext={account.metrics.daysToRenewal < 60 ? "CRITICAL WINDOW" : "Stability Phase"}
+          color={account.metrics.daysToRenewal < 60 ? 'rose' : 'green'}
+        />
+        <MetricCard 
+          label="Strategic Alignment" 
+          value={`${account.metrics.strategicAlignment}%`} 
+          icon={<Heart className="w-4 h-4" />}
+          subtext="Value Prop Resonancy"
+          progress={account.metrics.strategicAlignment}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 opacity-60">
+        <MetricCard 
+          label="NPS Pulse" 
+          value={account.metrics.nps.toFixed(1)} 
+          icon={<BarChart3 className="w-4 h-4" />}
+        />
+        <MetricCard 
+          label="CSAT" 
+          value={account.metrics.csat.toFixed(1)} 
+          icon={<Sparkles className="w-4 h-4" />}
+          color="green"
+        />
+        <MetricCard 
+          label="Support High-Pri" 
+          value={account.metrics.openHighPriorityTickets.toString()} 
+          icon={<Ticket className="w-4 h-4" />}
+        />
+        <MetricCard 
+          label="Product Adoption" 
           value={`${account.metrics.productUsageScore}%`} 
-          icon={<TrendingUp className="w-4 h-4" />}
-          subtext="MoM trend: Stable"
+          icon={<Activity className="w-4 h-4" />}
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 glass-card rounded-2xl p-6 flex flex-col h-[450px]">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h3 className="text-xl font-display font-medium">Sentiment Trend History</h3>
-              <p className="text-[10px] text-[#A84A5E] font-bold uppercase tracking-widest">Enterprise High-Touch Tracking</p>
-            </div>
+        <div className="glass-card p-6 md:p-8 flex flex-col h-[400px] md:h-[500px] lg:col-span-3">
+          <div className="flex items-center gap-3 mb-8">
+            <Clock className="w-5 h-5 text-[#D81B60]" />
+            <h3 className="text-2xl font-display font-medium">Interaction Soul</h3>
           </div>
-          <div className="flex-1 min-h-0">
-             <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={account.interactions.slice().reverse()}>
-                  <defs>
-                    <linearGradient id="colorHighNps" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#D81B60" stopOpacity={0.15}/>
-                      <stop offset="95%" stopColor="#D81B60" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#FADADD" />
-                  <XAxis 
-                    dataKey="date" 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{fontSize: 9, fill: '#A84A5E'}} 
-                    tickFormatter={(val) => format(new Date(val), 'MMM d')}
-                  />
-                  <YAxis domain={[0, 10]} axisLine={false} tickLine={false} tick={{fontSize: 9, fill: '#A84A5E'}} />
-                  <Tooltip contentStyle={{ borderRadius: '16px', border: '1px solid #FADADD', fontSize: '11px', boxShadow: 'none', background: 'rgba(255,255,255,0.9)' }} />
-                  <Area type="monotone" dataKey="nps" stroke="#D81B60" strokeWidth={3} fill="url(#colorHighNps)" />
-                </AreaChart>
-              </ResponsiveContainer>
-          </div>
-        </div>
-
-        <div className="glass-card rounded-2xl p-6 flex flex-col h-[450px]">
-          <div className="flex items-center gap-2 mb-6">
-            <Clock className="w-4 h-4 text-[#D81B60]" />
-            <h3 className="text-xl font-display font-medium">Recent Pulse Logs</h3>
-          </div>
-          <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto space-y-6 pr-2 custom-scrollbar">
             {account.interactions.length > 0 ? (
               account.interactions.map(interaction => (
-                <div key={interaction.id} className="relative pl-6 pb-6 border-l border-[#FADADD] last:border-0 last:pb-0 group">
-                  <div className="absolute -left-1.5 top-0 w-3 h-3 rounded-full bg-[#D81B60] ring-4 ring-white" />
-                  <div className="flex justify-between items-start mb-1">
-                    <span className="text-[10px] font-black text-[#A84A5E] uppercase tracking-tighter">{format(new Date(interaction.date), 'MMM d, yyyy')}</span>
-                    <span className="text-lg">{interaction.tone}</span>
+                <div key={interaction.id} className="relative pl-6 pb-8 border-l-2 border-[#1A1A1A]/5 last:border-0 last:pb-0 group">
+                  <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-white border-2 border-[#D81B60]" />
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="text-[10px] font-black text-[#1A1A1A]/40 uppercase tracking-widest">{format(new Date(interaction.date), 'MMM d, yyyy')}</span>
+                    <span className="text-xl grayscale group-hover:grayscale-0 transition-all">{interaction.tone}</span>
                   </div>
-                  <h4 className="text-xs font-bold mb-1">{interaction.type}</h4>
-                  <p className="text-[11px] text-stone-600 italic line-clamp-2">"{interaction.notes}"</p>
-                  <div className="mt-2 flex flex-wrap gap-1">
+                  <h4 className="text-xs font-bold mb-2 uppercase tracking-wide">{interaction.type}</h4>
+                  <p className="text-[12px] text-stone-600 leading-relaxed italic">"{interaction.notes}"</p>
+                  <div className="mt-4 flex flex-wrap gap-2">
                     {interaction.tags.map(t => (
-                      <span key={t} className="text-[8px] bg-pink-50 text-[#D81B60] px-1.5 py-0.5 rounded border border-pink-100 font-bold uppercase">{t}</span>
+                      <span key={t} className="text-[9px] bg-white text-[#1A1A1A] px-2 py-1 rounded-full border border-[#1A1A1A]/10 font-bold uppercase tracking-wider">{t}</span>
                     ))}
                   </div>
                 </div>
               ))
             ) : (
-              <div className="flex flex-col items-center justify-center h-full opacity-30 italic text-sm">No pulses recorded</div>
+              <div className="flex flex-col items-center justify-center h-full opacity-30 italic text-sm">Waiting for first signal...</div>
             )}
           </div>
         </div>
@@ -351,7 +482,64 @@ function DashboardView({ account }: { account: Account }) {
   );
 }
 
-function AlertsView({ highRiskAccounts, onSelect }: { highRiskAccounts: Account[], onSelect: (id: string) => void }) {
+function ExecutiveBriefingView({ account }: { account: Account }) {
+  return (
+    <div className="space-y-8 md:space-y-12 max-w-5xl mx-auto py-8 md:py-12 px-2">
+      <div className="text-center space-y-4">
+        <h2 className="text-3xl md:text-5xl font-display italic leading-tight px-4">Executive Briefing: {account.name}</h2>
+        <p className="text-[10px] md:text-[11px] text-stone-500 uppercase tracking-widest max-w-lg mx-auto px-6">{account.description}</p>
+        <p className="text-[10px] md:text-xs uppercase tracking-[0.4em] text-[#D81B60] font-black pt-2 md:pt-4">Confidential • {format(new Date(), 'MMMM yyyy')}</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12">
+        <div className="glass-card p-6 md:p-12 space-y-6 md:space-y-8">
+          <h3 className="text-2xl md:text-3xl font-display italic border-b border-stone-200 pb-4">Core Performance</h3>
+          <div className="grid grid-cols-2 gap-6 md:gap-8">
+            <div>
+              <p className="text-[9px] md:text-[10px] uppercase font-bold text-stone-400 mb-1">Health</p>
+              <p className="text-2xl md:text-4xl font-display text-[#1A1A1A]">{account.metrics.healthScore}%</p>
+            </div>
+            <div>
+              <p className="text-[9px] md:text-[10px] uppercase font-bold text-stone-400 mb-1">Depth</p>
+              <p className="text-2xl md:text-4xl font-display text-[#1A1A1A]">{account.metrics.multiThreadingScore}/10</p>
+            </div>
+            <div>
+              <p className="text-[9px] md:text-[10px] uppercase font-bold text-stone-400 mb-1">Pipeline</p>
+              <p className="text-2xl md:text-4xl font-display text-[#1A1A1A]">${(account.metrics.expansionPipeline / 1000).toFixed(0)}k</p>
+            </div>
+            <div>
+              <p className="text-[9px] md:text-[10px] uppercase font-bold text-stone-400 mb-1">Renewal</p>
+              <p className="text-2xl md:text-4xl font-display text-[#1A1A1A]">{account.metrics.strategicAlignment}%</p>
+            </div>
+          </div>
+        </div>
+
+        {/* AUTHORITATIVE EXECUTIVE SUMMARY - SOLID COLORED BACKGROUND FOR MAX VISIBILITY */}
+        <div className="p-8 md:p-12 flex flex-col justify-center bg-[#D81B60] rounded-[2.5rem] md:rounded-[3rem] shadow-2xl relative overflow-hidden ring-8 ring-[#D81B60]/10 border-4 border-white/20">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl pointer-events-none" />
+          <div className="space-y-6 relative z-10">
+            <Sparkles className="w-8 h-8 text-rose-200" />
+            <h3 className="text-2xl md:text-3xl font-display italic text-white drop-shadow-sm">CSM Executive Narrative</h3>
+            <div className="space-y-4">
+              <p className="text-xl md:text-2xl font-display italic text-white leading-tight">
+                "Maintaining positive momentum post-renewal. Strategic alignment on expansion is the primary growth blocker for Q2. Engaging stakeholders next week."
+              </p>
+            </div>
+            <div className="pt-6 md:pt-8 flex items-center gap-4">
+               <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white flex items-center justify-center font-bold text-[#D81B60] shadow-lg shrink-0">UP</div>
+               <div className="min-w-0">
+                  <p className="text-xs md:text-sm font-bold text-white truncate">Uchechukwu Precious</p>
+                  <p className="text-[8px] md:text-[10px] uppercase tracking-widest text-rose-200 font-bold truncate">Customer Success Manager</p>
+               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AlertsView({ highRiskAccounts, onSelect }: { highRiskAccounts: Account[], onSelect: (id: string, briefing: boolean) => void }) {
   return (
     <div className="flex-1 flex flex-col p-4 md:p-8 overflow-hidden">
       <div className="mb-8">
@@ -368,7 +556,7 @@ function AlertsView({ highRiskAccounts, onSelect }: { highRiskAccounts: Account[
             <motion.div 
               key={acc.id}
               whileHover={{ scale: 1.02 }}
-              onClick={() => onSelect(acc.id)}
+              onClick={() => onSelect(acc.id, true)}
               className="bg-white border-2 border-rose-100 p-6 rounded-3xl shadow-lg cursor-pointer hover:border-rose-400 transition-all flex flex-col"
             >
               <div className="flex justify-between items-start mb-4">
@@ -405,8 +593,11 @@ function AlertsView({ highRiskAccounts, onSelect }: { highRiskAccounts: Account[
                 )}
               </div>
 
-              <button className="mt-auto w-full py-3 bg-rose-600 text-white text-[10px] font-bold uppercase tracking-widest rounded-xl hover:bg-rose-700 transition-colors shadow-md shadow-rose-100">
-                Enter War Room
+              <button 
+                onClick={(e) => { e.stopPropagation(); onSelect(acc.id, true); }}
+                className="mt-auto w-full py-3 bg-rose-600 text-white text-[10px] font-bold uppercase tracking-widest rounded-xl hover:bg-rose-700 transition-colors shadow-md shadow-rose-100"
+              >
+                Enter Strategic Review
               </button>
             </motion.div>
           ))}
@@ -477,49 +668,65 @@ function IntegrationsView() {
   return (
     <div className="p-4 md:p-8 h-full flex flex-col overflow-y-auto custom-scrollbar">
        <div className="mb-12">
-          <h2 className="text-3xl font-display italic text-[#D81B60] mb-4">Ecosystem Architecture</h2>
+          <h2 className="text-4xl font-display italic text-[#1A1A1A] mb-4">Unified Ecosystem</h2>
+          <p className="text-sm text-stone-500 mb-12 max-w-2xl leading-relaxed">
+            Timber doesn't just store data; it listens to your existing stack. By integrating Salesforce, Zendesk, HubSpot, and Zoom, we capture sentiment across every touchpoint - from initial onboarding to high-stakes renewals.
+          </p>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="bg-white p-8 rounded-3xl border border-[#FADADD] shadow-sm">
+            <div className="bg-white p-8 rounded-[2rem] border border-stone-200 shadow-sm hover:shadow-xl transition-all">
               <div className="flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 bg-blue-50 flex items-center justify-center rounded-2xl text-blue-600 font-black italic">sf</div>
-                <h3 className="text-xl font-bold">Salesforce Truth</h3>
+                <div className="w-12 h-12 bg-blue-50 flex items-center justify-center rounded-2xl text-blue-600 font-black italic shadow-inner">sf</div>
+                <h3 className="text-xl font-bold">Salesforce / HubSpot</h3>
               </div>
-              <div className="p-4 bg-stone-50 rounded-2xl mb-6 border border-stone-100">
-                 <p className="text-[10px] font-black uppercase text-stone-400 mb-2">Architectural Logic</p>
-                 <p className="text-xs text-stone-600 leading-relaxed italic">
-                   "We sync **Filtered Outcomes** as Tasks. Raw pulse logs are internal to the Success team. This preserves the 'Luxury' nature of CS work while ensuring Sales visibility."
+              <div className="p-4 bg-stone-50 rounded-2xl mb-6 border border-stone-100 italic">
+                 <p className="text-[10px] font-black uppercase text-stone-400 mb-2">Benefit</p>
+                 <p className="text-xs text-stone-600 leading-relaxed">
+                   Automatically log "Revenue Pulse" signals based on contract changes. Align Sales and Success by syncing strategic win plans during the handover phase.
                  </p>
               </div>
               <div className="space-y-3">
                 <IntegrationOption label="Sync Executive Summaries" enabled />
-                <IntegrationOption label="Account Health Mapping" enabled />
-                <IntegrationOption label="Closed-Loop Feedback" enabled={false} />
+                <IntegrationOption label="Revenue Delta Sync" enabled />
+                <IntegrationOption label="Pipeline Alignment" enabled={false} />
               </div>
             </div>
 
-            <div className="bg-white p-8 rounded-3xl border border-[#FADADD] shadow-sm">
+            <div className="bg-white p-8 rounded-[2rem] border border-stone-200 shadow-sm hover:shadow-xl transition-all">
               <div className="flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 bg-emerald-50 flex items-center justify-center rounded-2xl text-emerald-600 font-black italic">zd</div>
-                <h3 className="text-xl font-bold">Zendesk Health</h3>
+                <div className="w-12 h-12 bg-emerald-50 flex items-center justify-center rounded-2xl text-emerald-600 font-black italic shadow-inner">zd</div>
+                <h3 className="text-xl font-bold">Zendesk / Intercom</h3>
               </div>
-              <p className="text-xs text-stone-600 leading-relaxed mb-6">
-                Sentiment analysis on technical tickets allows PulseLog to identify "Quiet Churn" signals before any human interaction.
-              </p>
+              <div className="p-4 bg-stone-50 rounded-2xl mb-6 border border-stone-100 italic">
+                 <p className="text-[10px] font-black uppercase text-stone-400 mb-2">Benefit</p>
+                 <p className="text-xs text-stone-600 leading-relaxed">
+                   Capture passive frustration. We run AI sentiment analysis on every support ticket to catch technical fatigue before it reaches the CSM.
+                 </p>
+              </div>
               <div className="space-y-3">
                 <IntegrationOption label="High Priority Trigger" enabled />
-                <IntegrationOption label="Volume Scoring Ingest" enabled />
-                <IntegrationOption label="Ticket Sentiment Sync" enabled={false} />
+                <IntegrationOption label="Passive Sentiment Scoring" enabled />
+                <IntegrationOption label="Ticket Volume Ingest" enabled={false} />
+              </div>
+            </div>
+
+            <div className="bg-white p-8 rounded-[2rem] border border-stone-200 shadow-sm hover:shadow-xl transition-all">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-12 h-12 bg-orange-50 flex items-center justify-center rounded-2xl text-orange-600 font-black italic shadow-inner">zm</div>
+                <h3 className="text-xl font-bold">Zoom / Google Meet</h3>
+              </div>
+              <div className="p-4 bg-stone-50 rounded-2xl mb-6 border border-stone-100 italic">
+                 <p className="text-[10px] font-black uppercase text-stone-400 mb-2">Benefit</p>
+                 <p className="text-xs text-stone-600 leading-relaxed">
+                   Live transcript sentiment. During Onboarding and QBRs, Timber records the "Energy Level" of stakeholders to detect unsaid skepticism.
+                 </p>
+              </div>
+              <div className="space-y-3">
+                <IntegrationOption label="Call Sentiment Trophies" enabled={false} />
+                <IntegrationOption label="Transcribe & Log Pulse" enabled={false} />
               </div>
             </div>
           </div>
-       </div>
-
-       <div className="bg-[#FFF1F2] p-8 rounded-[40px] border border-rose-100 flex flex-col md:flex-row items-center gap-8 mb-12">
-         <div className="flex-1">
-           <h4 className="text-2xl font-display italic text-rose-800 mb-2">Proactive Automation Engine</h4>
-           <p className="text-sm text-rose-700/70">Connecting your stack triggers the Red Alert view instantly when high-velocity indicators shift.</p>
-         </div>
-         <button className="px-8 py-4 bg-rose-600 text-white font-bold rounded-2xl shadow-xl shadow-rose-200 uppercase tracking-widest text-xs">Authorize Connectors</button>
        </div>
     </div>
   );
@@ -564,30 +771,50 @@ function NavButton({ active, onClick, icon, label, badge }: { active: boolean, o
   );
 }
 
-function Header({ title, status, onLogClick, account }: { title: string, status: string, onLogClick: () => void, account: Account }) {
+function Header({ title, status, onLogClick, account, isBriefing, onBriefingToggle, onMenuClick }: { 
+  title: string, 
+  status: string, 
+  onLogClick: () => void, 
+  account: Account,
+  isBriefing: boolean,
+  onBriefingToggle: () => void,
+  onMenuClick?: () => void
+}) {
   return (
-    <header className="h-20 border-b border-[#FADADD] bg-white/70 backdrop-blur-md flex items-center justify-between px-4 md:px-8 shrink-0 z-30">
-      <div className="flex items-center gap-4 md:gap-6 overflow-hidden">
+    <header className="h-20 md:h-24 border-b border-[#1A1A1A]/5 bg-white/70 backdrop-blur-md flex items-center justify-between px-4 md:px-8 lg:px-12 shrink-0 z-30">
+      <div className="flex items-center gap-3 overflow-hidden">
+        <button onClick={onMenuClick} className="md:hidden p-2 text-stone-600 hover:bg-stone-50 rounded-lg">
+           <Layers className="w-5 h-5 text-[#D81B60]" />
+        </button>
         <div className="overflow-hidden">
-          <h2 className="text-lg md:text-2xl font-display font-medium text-stone-800 leading-tight truncate">{title}</h2>
-          <div className="flex items-center gap-3 mt-1">
+          <h2 className="text-lg md:text-3xl font-display text-stone-800 leading-tight truncate">{title}</h2>
+          <div className="flex items-center gap-2 mt-1 md:mt-2">
              <span className={cn(
-               "px-1.5 py-0.5 text-[8px] font-black rounded uppercase tracking-widest shrink-0",
+               "px-2 py-0.5 text-[8px] md:text-[9px] font-black rounded-full uppercase tracking-widest shrink-0",
                status === 'Healthy' ? "bg-green-100 text-green-700" : "bg-rose-100 text-rose-700"
              )}>{status}</span>
-             <span className="text-[9px] font-bold text-stone-400 uppercase flex items-center gap-1 hidden sm:flex">
-               <Clock className="w-3 h-3" /> {format(new Date(account.metrics.lastTouch), 'MMM d')}
+             <span className="text-[9px] md:text-[10px] font-bold text-stone-400 uppercase flex items-center gap-1 hidden sm:flex">
+               <Activity className="w-3 h-3" /> {format(new Date(account.metrics.lastTouch), 'MMM d')}
              </span>
           </div>
         </div>
       </div>
       
-      <div className="flex items-center gap-3 md:gap-4 shrink-0">
+      <div className="flex items-center gap-2 md:gap-4 shrink-0">
+        <button 
+          onClick={onBriefingToggle}
+          className={cn(
+            "px-2 md:px-4 py-2 rounded-full text-[8px] md:text-[10px] font-bold uppercase tracking-widest transition-all border shrink-0",
+            isBriefing ? "bg-[#1A1A1A] text-white border-[#1A1A1A]" : "bg-white text-[#1A1A1A] border-[#1A1A1A]/20 hover:border-[#1A1A1A]/40"
+          )}
+        >
+          {isBriefing ? 'Exit' : 'Briefing'}
+        </button>
         <button 
           onClick={onLogClick}
-          className="bg-[#D81B60] hover:bg-[#C2185B] text-white px-4 md:px-6 py-2.5 md:py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all transform hover:scale-[1.02] shadow-xl shadow-rose-200 flex items-center gap-2"
+          className="p-2.5 md:prestige-btn bg-[#D81B60] md:bg-[#1A1A1A] text-white rounded-xl md:rounded-full shrink-0"
         >
-          <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Log Interaction</span>
+          <Plus className="w-4 h-4" /> <span className="hidden md:inline">Signal</span>
         </button>
       </div>
     </header>
@@ -604,7 +831,7 @@ function MetricCard({ label, value, icon, subtext, trend, progress, color = 'ros
   color?: 'rose' | 'green'
 }) {
   return (
-    <div className="glass-card p-5 md:p-6 rounded-3xl border border-white/40 group relative overflow-hidden">
+    <div className="glass-card p-4 md:p-6 rounded-3xl border border-white/40 group relative overflow-hidden shadow-sm">
       <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
         <div className="scale-[3]">{icon}</div>
       </div>
@@ -639,89 +866,122 @@ function MetricCard({ label, value, icon, subtext, trend, progress, color = 'ros
   );
 }
 
-function AiWidget({ isOpen, onToggle, analysis, isLoading }: { isOpen: boolean, onToggle: () => void, analysis: AIAnalysis | null, isLoading: boolean }) {
+function AiWidget({ analysis, isLoading, account }: { analysis: AIAnalysis | null, isLoading: boolean, account: Account }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [chatInput, setChatInput] = useState('');
+  const [chatHistory, setChatHistory] = useState<{ role: 'user' | 'assistant', content: string }[]>([]);
+  const [isChatLoading, setIsChatLoading] = useState(false);
+
+  const handleSendQuery = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim() || isChatLoading) return;
+
+    const userMessage = chatInput;
+    setChatInput('');
+    setChatHistory(prev => [...prev, { role: 'user', content: userMessage }]);
+    setIsChatLoading(true);
+
+    try {
+      const response = await chatWithAdvisor(account, userMessage);
+      setChatHistory(prev => [...prev, { role: 'assistant', content: response }]);
+    } catch (error) {
+      setChatHistory(prev => [...prev, { role: 'assistant', content: "I'm sorry, I'm unable to process that right now." }]);
+    } finally {
+      setIsChatLoading(false);
+    }
+  };
+
   return (
     <>
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-4 max-w-[90vw]">
+      <div className="fixed bottom-4 right-4 md:bottom-8 md:right-8 z-[100] flex flex-col items-end gap-4 max-w-[95vw]">
         <AnimatePresence>
           {isOpen && (
             <motion.div
-              initial={{ opacity: 0, y: 20, scale: 0.9, transformOrigin: 'bottom right' }}
+              initial={{ opacity: 0, y: 40, scale: 0.8, transformOrigin: 'bottom right' }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 20, scale: 0.9 }}
-              className="w-full sm:w-[350px] bg-white rounded-[32px] shadow-2xl border border-rose-100 overflow-hidden flex flex-col"
-              style={{ maxHeight: 'calc(100vh - 120px)' }}
+              exit={{ opacity: 0, scale: 0.8, y: 40 }}
+              className="w-[calc(100vw-2rem)] sm:w-[320px] bg-white rounded-[2.5rem] shadow-[0_30px_90px_rgba(0,0,0,0.15)] border border-stone-200 overflow-hidden flex flex-col"
+              style={{ maxHeight: '60vh' }}
             >
-              <div className="p-6 bg-gradient-to-br from-[#D81B60] to-[#AD1457] text-white shrink-0">
-                <div className="flex justify-between items-start">
-                   <div className="flex items-center gap-2 mb-4">
-                      <BrainCircuit className="w-5 h-5" />
-                      <h3 className="text-[10px] font-black uppercase tracking-[0.2em]">Strategy Assistant</h3>
+              <div className="p-5 bg-[#1A1A1A] text-white shrink-0">
+                <div className="flex justify-between items-center">
+                   <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl bg-[#D81B60] flex items-center justify-center">
+                        <BrainCircuit className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] leading-none">Advisor</h3>
+                        <p className="text-[8px] text-[#A84A5E] font-bold uppercase tracking-widest mt-1">U. Precious</p>
+                      </div>
                    </div>
-                   <button onClick={onToggle} className="p-1 hover:bg-white/10 rounded-lg">
-                      <ChevronRight className="w-4 h-4 rotate-90" />
+                   <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                      <Plus className="w-4 h-4 rotate-45 text-stone-400" />
                    </button>
                 </div>
-                {isLoading ? (
-                  <div className="h-8 w-2/3 bg-white/20 rounded animate-pulse" />
-                ) : (
-                  <h4 className="text-2xl font-display italic leading-tight">Sentiment is {analysis?.trend}</h4>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar bg-stone-50/30">
+                {chatHistory.length === 0 && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+                    <div className="bg-white p-4 rounded-2xl border border-stone-100 shadow-sm">
+                      <p className="text-[8px] font-black text-[#D81B60] uppercase mb-2">Account Strategy</p>
+                      <p className="text-[11px] text-stone-500 leading-relaxed italic">"Risk indicators are minimal. I recommend focusing on expansion."</p>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 gap-2">
+                      <button onClick={() => setChatInput("Draft a renewal risk email.")} className="p-3 bg-white border border-stone-100 rounded-xl text-[9px] font-bold text-stone-600 hover:border-[#D81B60] text-left transition-all">Risk Email</button>
+                      <button onClick={() => setChatInput("Provide a growth playbook.")} className="p-3 bg-white border border-stone-100 rounded-xl text-[9px] font-bold text-stone-600 hover:border-[#D81B60] text-left transition-all">Growth Playbook</button>
+                    </div>
+                  </motion.div>
+                )}
+
+                {chatHistory.map((msg, i) => (
+                  <div key={i} className={cn("flex flex-col", msg.role === 'user' ? "items-end ml-4" : "items-start mr-4")}>
+                    <div className={cn(
+                      "p-3 rounded-2xl text-[11px] leading-relaxed",
+                      msg.role === 'user' ? "bg-[#D81B60] text-white rounded-tr-none" : "bg-white border border-stone-200 text-stone-800 rounded-tl-none shadow-sm"
+                    )}>
+                      <Markdown>{msg.content}</Markdown>
+                    </div>
+                  </div>
+                ))}
+                
+                {isChatLoading && (
+                  <div className="flex items-center gap-2 text-stone-300 text-[9px] font-bold italic">
+                     <Sparkles className="w-3 h-3 animate-spin" /> Strategizing...
+                  </div>
                 )}
               </div>
 
-              <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
-                {isLoading ? (
-                  <div className="space-y-4">
-                    <div className="h-4 w-full bg-stone-50 rounded animate-pulse" />
-                    <div className="h-20 w-full bg-stone-50 rounded animate-pulse" />
-                  </div>
-                ) : analysis && (
-                  <>
-                    <div>
-                      <p className="text-[10px] uppercase font-black text-stone-400 mb-2">Strategic Outlook</p>
-                      <p className="text-xs leading-relaxed text-stone-600 bg-stone-50 p-4 rounded-2xl italic border border-stone-100">
-                        "{analysis.summary}"
-                      </p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="p-4 bg-rose-50 rounded-2xl border border-rose-100">
-                         <p className="text-[9px] font-black text-rose-700 uppercase mb-1">Risk</p>
-                         <p className="text-xs font-bold text-rose-900">{analysis.churnRisk}</p>
-                      </div>
-                      <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
-                         <p className="text-[9px] font-black text-emerald-700 uppercase mb-1">Growth</p>
-                         <p className="text-xs font-bold text-emerald-900">{analysis.expansionPotential}</p>
-                      </div>
-                    </div>
-                    <div className="pb-4">
-                      <p className="text-[10px] uppercase font-black text-[#D81B60] mb-3">Priority Actions</p>
-                      <ul className="space-y-3">
-                        {analysis.recommendedActions.map((a, i) => (
-                          <li key={i} className="flex gap-3 text-xs text-stone-700">
-                            <CheckCircle2 className="w-4 h-4 shrink-0 text-[#D81B60]" />
-                            <span>{a}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </>
-                )}
+              <div className="p-4 bg-white border-t border-stone-100">
+                <form onSubmit={handleSendQuery} className="relative">
+                  <input 
+                    type="text" 
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    placeholder="Ask Advisor..."
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl py-3 pl-4 pr-10 text-xs focus:outline-none focus:border-[#D81B60] transition-colors"
+                  />
+                  <button type="submit" disabled={isChatLoading || !chatInput.trim()} className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 bg-[#1A1A1A] text-white rounded-lg flex items-center justify-center hover:bg-[#D81B60] transition-colors disabled:opacity-20">
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </form>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
         <button 
-          onClick={onToggle}
+          onClick={() => setIsOpen(!isOpen)}
           className={cn(
-            "w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center shadow-2xl transition-all transform hover:scale-110 active:scale-95 group relative overflow-hidden",
+            "w-12 h-12 md:w-16 md:h-16 rounded-2xl md:rounded-[2rem] flex items-center justify-center shadow-2xl transition-all transform hover:scale-105 active:scale-95 group relative z-[50]",
             isOpen ? "bg-white text-[#D81B60] ring-2 ring-[#D81B60]" : "bg-[#D81B60] text-white"
           )}
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent group-hover:translate-y-full transition-transform" />
-          <BrainCircuit className="w-6 h-6 md:w-7 md:h-7 relative z-10" />
+          <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <BrainCircuit className="w-6 h-6 md:w-8 md:h-8 relative z-10" />
           {!isOpen && (
-            <div className="absolute top-0 right-0 w-3 h-3 bg-rose-400 rounded-full border-2 border-white animate-ping" />
+            <div className="absolute top-0 right-0 w-3 h-3 bg-rose-400 rounded-full border-2 border-white" />
           )}
         </button>
       </div>
@@ -731,33 +991,81 @@ function AiWidget({ isOpen, onToggle, analysis, isLoading }: { isOpen: boolean, 
 
 function NudgeManager({ step, onNext, onSkip }: { step: number, onNext: () => void, onSkip: () => void }) {
   const nudges = [
-    { title: "Welcome to PulseLog", text: "The luxury workspace for Enterprise CSMs. Let's start the briefing.", position: { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' } },
-    { title: "Command Center", text: "Log your first pulse here to activate AI sentiment tracking.", position: { top: '80px', right: '40px' } },
-    { title: "The War Room", text: "Red alerts appear here. Proactive churn prevention at scale.", position: { top: '150px', left: '260px' } },
-    { title: "Intelligence Engine", text: "Expert strategy, powered by Gemini. Open this widget for live account playbooks.", position: { bottom: '100px', right: '100px' } }
+    { 
+      title: "Welcome to Timber", 
+      text: "This is for Customer Success Managers. Connect Salesforce, Zendesk, and Zoom.", 
+      position: { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' } 
+    },
+    { 
+      title: "Pulse Signals", 
+      text: "Log interactions to capture real-time sentiment and score account health.", 
+      position: { top: '120px', right: '40px', left: 'auto', transform: 'none' } 
+    },
+    { 
+      title: "Briefing View", 
+      text: "Enter Executive Briefing for high-stakes stakeholder summaries.", 
+      position: { top: '120px', right: '140px', left: 'auto', transform: 'none' } 
+    },
+    { 
+      title: "Strategic Advisor", 
+      text: "Get authoritative AI-driven playbooks for risk and expansion.", 
+      position: { bottom: '120px', right: '40px', left: 'auto', top: 'auto', transform: 'none' } 
+    }
   ];
 
   const current = nudges[step];
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   return (
-    <div className="fixed inset-0 z-[100] pointer-events-none">
-      <div className="absolute inset-0 bg-stone-900/10 backdrop-blur-[1px]" />
+    <div className="fixed inset-0 z-[200] pointer-events-none">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm"
+      />
+      
       <motion.div 
         key={step}
-        initial={{ opacity: 0, scale: 0.9, y: 10 }}
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        style={current.position as any}
-        className="absolute pointer-events-auto w-64 md:w-80 bg-white p-6 md:p-8 rounded-[40px] shadow-2xl border-2 border-[#D81B60]"
+        className="absolute pointer-events-auto w-[calc(100vw-3rem)] max-w-[340px] bg-white p-6 md:p-8 rounded-[2.5rem] shadow-[0_40px_100px_rgba(0,0,0,0.3)] border-2 border-[#D81B60]"
+        style={isMobile || step === 0 ? {
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)'
+        } : current.position}
       >
+        <div className="absolute -top-3 -right-3 w-8 h-8 bg-[#D81B60] text-white rounded-full flex items-center justify-center font-bold text-xs shadow-lg">
+          {step + 1}
+        </div>
+        
         <div className="flex items-center gap-2 mb-4">
           <Sparkles className="w-4 h-4 text-[#D81B60]" />
           <h5 className="text-[10px] font-black uppercase text-[#D81B60] tracking-widest">{current.title}</h5>
         </div>
         <p className="text-sm text-stone-600 mb-8 leading-relaxed font-bold italic">"{current.text}"</p>
         <div className="flex gap-4 items-center">
-           <button onClick={onSkip} className="text-[10px] font-bold text-stone-400 uppercase hover:text-stone-600 transition-colors">Skip Tour</button>
-           <button onClick={onNext} className="flex-1 py-3 bg-[#D81B60] text-white text-[10px] font-black uppercase rounded-2xl shadow-xl shadow-pink-100 hover:bg-[#C2185B] transition-colors">{step === 3 ? "Complete Onboarding" : "Next Briefing"}</button>
+           <button onClick={onSkip} className="text-[10px] font-bold text-stone-400 uppercase hover:text-stone-600 transition-colors">Skip</button>
+           <button onClick={onNext} className="flex-1 py-3 bg-[#D81B60] text-white text-[10px] font-black uppercase rounded-2xl shadow-xl hover:bg-[#C2185B] transition-colors">
+             {step === 3 ? "Get Started" : "Next Step"}
+           </button>
         </div>
+
+        {/* Pointer Arrow for desktop */}
+        {!isMobile && step > 0 && (
+          <div className={cn(
+            "absolute w-4 h-4 bg-white border-2 border-[#D81B60] rotate-45 -z-10",
+            step === 3 ? "bottom-[-10px] right-8" : "top-[-10px] right-8"
+          )} />
+        )}
       </motion.div>
     </div>
   );

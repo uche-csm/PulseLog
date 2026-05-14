@@ -1,55 +1,35 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-display: "Cormorant Garamond", serif;
-  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
 
-  --color-rose-50: #fff1f2;
-  --color-rose-100: #ffe4e6;
-  --color-rose-200: #fecdd3;
-  --color-rose-300: #fda4af;
-  --color-rose-400: #fb7185;
-  --color-rose-500: #f43f5e;
-  --color-rose-600: #e11d48;
-  --color-rose-700: #be123c;
-  --color-rose-800: #9f1239;
-  --color-rose-900: #881337;
-  --color-rose-950: #4c0519;
+:root {
+  --prestige-bg: #F5F2ED;
+  --prestige-ink: #1A1A1A;
+  --prestige-accent: #D81B60;
+  --prestige-line: rgba(26, 26, 26, 0.15);
 }
 
 @layer base {
   body {
-    @apply font-sans bg-stone-50 text-stone-900;
+    @apply bg-[#F5F2ED] text-[#1A1A1A] font-sans antialiased;
   }
-  
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-display;
-  }
-}
-
-.markdown-body {
-  @apply font-sans leading-relaxed;
-}
-
-.markdown-body h1, .markdown-body h2, .markdown-body h3 {
-  @apply font-display mt-6 mb-4;
-}
-
-.markdown-body p {
-  @apply mb-4;
 }
 
 .glass-card {
-  @apply bg-white/70 backdrop-blur-md border border-white/20 shadow-sm transition-all duration-300;
+  @apply bg-white/40 backdrop-blur-sm border border-[#1A1A1A]/10 shadow-sm transition-all duration-500 rounded-[2rem];
 }
 
 .font-georgia {
-  font-family: 'George', 'Georgia', serif;
+  font-family: 'Cormorant Garamond', serif;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
+  width: 3px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
@@ -57,10 +37,24 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #FADADD;
+  background: #D81B60;
   border-radius: 10px;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #D81B60;
+.prestige-btn {
+  @apply px-8 py-3 bg-[#1A1A1A] text-white rounded-full font-sans text-[10px] font-bold uppercase tracking-[0.2em] transition-all hover:bg-[#D81B60] hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-black/10;
+}
+
+.prestige-input {
+  @apply w-full bg-white/50 border-b border-[#1A1A1A]/20 py-3 focus:outline-none focus:border-[#D81B60] transition-colors font-sans text-sm;
+}
+
+.war-room-pulse {
+  animation: pulse-red 2s infinite;
+}
+
+@keyframes pulse-red {
+  0% { box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.4); }
+  70% { box-shadow: 0 0 0 15px rgba(225, 29, 72, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(225, 29, 72, 0); }
 }

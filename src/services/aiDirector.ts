@@ -17,23 +17,30 @@ export async function analyzeAccountSentiment(account: Account): Promise<AIAnaly
   ).join('\n---\n');
 
   const prompt = `
-    Analyze the following customer health metrics and interaction history for account "${account.name}".
+    Analyze the following customer health metrics and interaction history for account "${account.name}". 
+    You are the "Strategic Advisor to Uchechukwu Precious, a Customer Success Manager" with 20 years of Enterprise experience.
     
-    HEALTH DATA:
-    - NPS: ${account.metrics.nps}/10
-    - CSAT: ${account.metrics.csat}/5
+    CRITICAL HEALTH DATA:
+    - Net Promoter Score (NPS): ${account.metrics.nps}/10
+    - Multi-threading Score: ${account.metrics.multiThreadingScore}/10 (Stakeholder coverage)
     - Health Score: ${account.metrics.healthScore}%
-    - Ticket Volume: ${account.metrics.ticketVolume}
-    - Open High Priority Tickets: ${account.metrics.openHighPriorityTickets}
-    - Last QBR: ${account.metrics.lastQBRDate} (Missed: ${account.metrics.isQBRMissed})
-    - Product Usage: ${account.metrics.productUsageScore}%
+    - Expansion Pipeline: $${account.metrics.expansionPipeline}
+    - Final Days to Renewal: ${account.metrics.daysToRenewal}
+    - Strategic Alignment: ${account.metrics.strategicAlignment}%
     - Engagement: ${account.metrics.engagementLevel}
-    - Last Touch: ${account.metrics.lastTouch}
 
-    INTERACTION HISTORY:
+    INTERACTION LOGS:
     ${interactionsSummary}
     
-    As the Chief of Customer Success, identify specific risk signals (e.g. "Support ticket spike", "Missed QBR") and expansion opportunities.
+    As a seasoned executive with 20 years of experience, identify:
+    1. THE PROBLEM: Immediate risk signals or blockers.
+    2. ACCOUNT HISTORY: Contextual patterns in their interaction history.
+    3. THE SOLUTION: High-leverage strategic playbooks.
+
+    Your tone should be authoritative, strategic, and concise. 
+    The "summary" field in the return JSON should follow this structure exactly: 
+    "PROBLEM: [Observation]. HISTORY: [Context]. SOLUTION: [Strategic Recommendation]."
+    
     Return a strategic analysis in JSON format exactly matching the schema.
   `;
 
@@ -65,12 +72,52 @@ export async function analyzeAccountSentiment(account: Account): Promise<AIAnaly
     // Fallback logic
     return {
       trend: 'Stable',
-      summary: 'Analysis currently unavailable. Please check back shortly.',
+      summary: 'PROBLEM: Data sync delay. HISTORY: Regular quarterly reviews. SOLUTION: Engage executive stakeholder.',
       riskSignals: [],
       opportunitySignals: [],
       churnRisk: 'Low',
       expansionPotential: 'None',
       recommendedActions: ['Manual review required']
     };
+  }
+}
+
+export async function chatWithAdvisor(account: Account, query: string): Promise<string> {
+  const ai = getAI();
+  const interactionsSummary = account.interactions.map(i => 
+    `Date: ${i.date}, Tone: ${i.tone}, Type: ${i.type}, Discussion: ${i.discussionPoints}, Notes: ${i.notes}`
+  ).join('\n---\n');
+
+  const prompt = `
+    You are an elite AI Strategy Assistant for a Customer Success Manager named Uchechukwu Precious.
+    You have all the data about the account "${account.name}".
+    
+    ACCOUNT DESCRIPTION: ${account.description}
+    HEALTH SCORE: ${account.metrics.healthScore}%
+    NPS: ${account.metrics.nps}
+    RENEWAL DAYS: ${account.metrics.daysToRenewal}
+    
+    INTERACTION HISTORY:
+    ${interactionsSummary}
+    
+    USER QUERY: "${query}"
+    
+    Your task:
+    1. If they ask for an email draft, write a high-stakes, professional, and empathetic email.
+    2. If they ask for a playbook, provide a step-by-step strategic guide.
+    3. If they ask a general question, answer as a brilliant strategic advisor.
+    
+    Tone: Authoritative, polished, and executive-ready.
+    Response should be in Markdown.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: prompt,
+    });
+    return response.text;
+  } catch (error) {
+    return "I apologize, I'm having trouble connecting to the strategy core. Please try again in a moment.";
   }
 }
