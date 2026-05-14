@@ -144,9 +144,9 @@ export default function App() {
         </button>
 
         <div className="p-6 md:p-8 border-b border-[#1A1A1A]/5 flex flex-col items-center md:items-start shrink-0">
-          <h1 className="text-xl md:text-3xl font-display italic text-[#1A1A1A] leading-tight hidden md:block">Timber</h1>
-          <TrendingUp className="w-8 h-8 text-[#D81B60]" />
-          <p className="text-[8px] md:text-[9px] uppercase tracking-[0.25em] text-[#D81B60] font-bold mt-2 hidden md:block opacity-60">CSM Intelligence</p>
+          <h1 className="text-2xl md:text-3xl font-display italic text-[#1A1A1A] leading-tight">Timber</h1>
+          <TrendingUp className="w-7 h-7 md:w-8 md:h-8 text-[#D81B60]" />
+          <p className="text-[8px] md:text-[9px] uppercase tracking-[0.25em] text-[#D81B60] font-bold mt-2 opacity-60">CSM Intelligence</p>
         </div>
         
         <nav className="flex-1 p-3 md:p-6 space-y-4 md:space-y-6 overflow-y-auto custom-scrollbar">
@@ -178,7 +178,7 @@ export default function App() {
             />
           </div>
 
-          <div className="pt-6 hidden md:block px-6">
+          <div className="pt-6 px-3 md:px-6">
             <div className="flex flex-col gap-3 mb-6">
                <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-stone-400" />
@@ -234,18 +234,18 @@ export default function App() {
         </nav>
 
         <div className="p-4 border-t border-[#FADADD] bg-stone-50 mt-auto shrink-0">
-          <div className="flex items-center gap-3 justify-center md:justify-start">
+          <div className="flex items-center gap-3 justify-start">
             <button 
               onClick={() => setIsSettingsOpen(true)}
               className="w-10 h-10 rounded-full bg-[#1A1A1A] flex items-center justify-center text-white text-[10px] font-bold ring-2 ring-white hover:bg-[#D81B60] transition-colors"
             >
               UP
             </button>
-            <div className="hidden md:block">
+            <div className="block">
               <p className="text-[10px] font-bold">U. Precious</p>
               <p className="text-[9px] text-[#A84A5E]">CSM</p>
             </div>
-            <button onClick={() => setIsSettingsOpen(true)} className="ml-auto text-stone-400 hover:text-[#D81B60] hidden md:block">
+            <button onClick={() => setIsSettingsOpen(true)} className="ml-auto text-stone-400 hover:text-[#D81B60] block">
               <Settings className="w-4 h-4" />
             </button>
           </div>
